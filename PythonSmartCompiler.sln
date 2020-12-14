@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.1062
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PythonSmartCompiler.Driver", "PythonSmartCompiler.Driver\PythonSmartCompiler.Driver.csproj", "{A8ED0CB5-FEAA-4F9B-B5FC-8B630C5EAB91}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PythonSmartCompiler.Compiler", "PythonSmartCompiler.Compiler\PythonSmartCompiler.Compiler.csproj", "{EEFD8D99-201F-47A0-8A6C-298D22E956F7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A8ED0CB5-FEAA-4F9B-B5FC-8B630C5EAB91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8ED0CB5-FEAA-4F9B-B5FC-8B630C5EAB91}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8ED0CB5-FEAA-4F9B-B5FC-8B630C5EAB91}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8ED0CB5-FEAA-4F9B-B5FC-8B630C5EAB91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EEFD8D99-201F-47A0-8A6C-298D22E956F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EEFD8D99-201F-47A0-8A6C-298D22E956F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EEFD8D99-201F-47A0-8A6C-298D22E956F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EEFD8D99-201F-47A0-8A6C-298D22E956F7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4D4B609A-081E-4F2F-A5BF-92109ABD71EE}
+	EndGlobalSection
+EndGlobal
