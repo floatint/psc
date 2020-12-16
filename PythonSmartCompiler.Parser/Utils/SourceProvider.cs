@@ -4,13 +4,12 @@ using System.Collections.Generic;
 using System.Text;
 using Antlr4.Runtime;
 
-namespace PythonSmartCompiler.Compiler.Utils
+namespace PythonSmartCompiler.Parser.Utils
 {
     class SourceProvider
     {
-        public static AntlrInputStream FromFile(string sourcePath, Encoding encoding)
+        public static AntlrInputStream FromString(string sourceCode)
         {
-            string sourceCode = File.ReadAllText(sourcePath, encoding);
             return new AntlrInputStream(sourceCode);
         }
     }

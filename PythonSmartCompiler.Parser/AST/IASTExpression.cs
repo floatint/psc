@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace PythonSmartCompiler.Compiler.Parser.AST
+namespace PythonSmartCompiler.Parser.AST
 {
-    class ASTNode
+    interface IASTExpression
     {
     }
 }

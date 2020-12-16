@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // Общие сведения об этой сборке предоставляются следующим набором 
 // атрибутов. Отредактируйте значения этих атрибутов, чтобы изменить
 // общие сведения об этой сборке.
-[assembly: AssemblyTitle("PythonSmartCompiler.Compiler.Properties")]
+[assembly: AssemblyTitle("PythonSmartCompiler.Parser.Properties")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("PythonSmartCompiler.Compiler.Properties")]
+[assembly: AssemblyProduct("PythonSmartCompiler.Parser.Properties")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -22,7 +22,7 @@ using System.Runtime.InteropServices;
 [assembly: CLSCompliant(false)]
 
 // Следующий GUID служит для идентификации библиотеки типов, если этот проект будет видимым для COM
-[assembly: Guid("30d46f23-1405-4df9-8ab7-b2be06b52e69")]
+[assembly: Guid("e5f3164c-3d71-47c6-8fb4-1c9184cd03e9")]
 
 // Сведения о версии сборки состоят из следующих четырех значений:
 //
