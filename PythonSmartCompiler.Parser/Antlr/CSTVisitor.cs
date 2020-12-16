@@ -47,14 +47,48 @@ namespace PythonSmartCompiler.Parser.Antlr
 
         public override ASTNode VisitSimple_stmt([NotNull] Python3Parser.Simple_stmtContext context)
         {
+            // TODO: список из small_stmt
             var child = context.GetChild(0);
 
             switch (child)
             {
-                
+                case Python3Parser.Small_stmtContext smallStmtCtx:
+                    return VisitSmall_stmt(smallStmtCtx);
             }
 
             return base.VisitSimple_stmt(context);
+        }
+
+        public override ASTNode VisitSmall_stmt([NotNull] Python3Parser.Small_stmtContext context)
+        {
+            var child = context.GetChild(0);
+
+            switch (child)
+            {
+                case Python3Parser.Expr_stmtContext exprStmtCtx:
+                    return VisitExpr_stmt(exprStmtCtx);
+                case Python3Parser.Del_stmtContext delStmtCtx:
+                    return VisitDel_stmt(delStmtCtx);
+                case Python3Parser.Pass_stmtContext passStmtCtx:
+                    return VisitPass_stmt(passStmtCtx);
+                case Python3Parser.Flow_stmtContext flowStmtCtx:
+                    return VisitFlow_stmt(flowStmtCtx);
+                case Python3Parser.Import_stmtContext impStmtCtx:
+                    return VisitImport_stmt(impStmtCtx);
+                case Python3Parser.Global_stmtContext globStmtCtx:
+                    return VisitGlobal_stmt(globStmtCtx);
+                case Python3Parser.Nonlocal_stmtContext nlocStmtCtx:
+                    return VisitNonlocal_stmt(nlocStmtCtx);
+                case Python3Parser.Assert_stmtContext asStmtCtx:
+                    return VisitAssert_stmt(asStmtCtx);
+                default:
+                    return ThrowDispatchException(context);
+            }
+        }
+
+        public override ASTNode VisitExpr_stmt([NotNull] Python3Parser.Expr_stmtContext context)
+        {
+            return base.VisitExpr_stmt(context);
         }
 
         public override ASTNode VisitCompound_stmt([NotNull] Python3Parser.Compound_stmtContext context)
@@ -91,45 +125,44 @@ namespace PythonSmartCompiler.Parser.Antlr
 
             if (paramRoot != null)
             {
+                FuncParameterTypeEnum paramType = FuncParameterTypeEnum.Value;
                 ASTFuncParameter funcParam = null;
                 for (int i = 0; i < paramRoot.ChildCount; i++)
                 {
                     var paramCtx = paramRoot.GetChild(i);
+                    // try get parameter info
                     if (paramCtx is Python3Parser.TfpdefContext pCtx)
                     {
                         // get parameter name
-                        // TODO: не будет работать в случае с *,**
                         funcParam = new ASTFuncParameter(pCtx.GetChild(0).GetText());
                         // get constraint
                         funcParam.Constraint = pCtx.test() != null ? (IASTExpression)VisitTest(pCtx.test()) : null;
+                        // set type
+                        funcParam.Type = paramType;
+                        // add to func def node
+                        funcDefStmt.Parameters.Add(funcParam);
                     }
                     else
                     {
+                        // if set value
                         if ("=".Equals(paramCtx.GetText()))
                         {
                             funcParam.DefaultValue = (IASTExpression)VisitTest((Python3Parser.TestContext)paramRoot.GetChild(++i));
                         }
-                    }
-                    var y = 9;
-                }
-                foreach (var p in paramRoot.children)
-                {
-                    if (p is Python3Parser.TfpdefContext pCtx)
-                    {
-                        // get parameter name
-                        // TODO: не будет работать в случае с *,**
-                        funcParam = new ASTFuncParameter(pCtx.GetChild(0).GetText());
-                        // get constraint
-                        funcParam.Constraint = pCtx.test() != null ? (IASTExpression)VisitTest(pCtx.test()) : null;
-                    }
-                    else
-                    {
-                        //var defValCtx = p.GetChild(0);
-                        // TODO: проработать
-                        if ("=".Equals(p.GetText()))
+                        
+                        // list param def
+                        if ("*".Equals(paramCtx.GetText()))
                         {
-                            funcParam.DefaultValue = (IASTExpression)VisitTest((Python3Parser.TestContext)p.GetChild(1));
+                            paramType = FuncParameterTypeEnum.List;
                         }
+
+                        // dict param def
+                        if ("**".Equals(paramCtx.GetText()))
+                        {
+                            paramType = FuncParameterTypeEnum.Dictionary;
+                        }
+
+
                     }
                 }
             }
@@ -138,6 +171,7 @@ namespace PythonSmartCompiler.Parser.Antlr
             // get body context
             var suite = context.suite();
 
+            // visit body statements
             foreach (var s in suite.children)
             {
                 switch (s)
@@ -152,6 +186,11 @@ namespace PythonSmartCompiler.Parser.Antlr
             }
            
             return funcDefStmt;
+        }
+
+        private ASTNode ThrowDispatchException(IParseTree pt)
+        {
+            throw new ArgumentException(string.Format("Couldn't dispatch {0}", pt.ToString()));
         }
 
         private IList<IASTStatement> _statements { set; get; }

@@ -12,7 +12,7 @@ namespace PythonSmartCompiler.Parser.AST
         }
 
         public string FuncName { set; get; }
-        public IList<ASTFuncParameter> Parameters { set; get; }
+        public IList<ASTFuncParameter> Parameters { set; get; } = new List<ASTFuncParameter>();
         public IList<IASTStatement> Statements { set; get; } = new List<IASTStatement>();
 
     }
