@@ -4,7 +4,8 @@ using System.Text;
 
 namespace PythonSmartCompiler.Parser.AST
 {
-    public interface IASTExpression
+    class ASTLogicNotExpression : ASTNode, IASTExpression
     {
+        public IASTExpression Expression { set; get; }
     }
 }

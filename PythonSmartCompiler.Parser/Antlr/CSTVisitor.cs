@@ -86,9 +86,273 @@ namespace PythonSmartCompiler.Parser.Antlr
             }
         }
 
+        // TODO: выражения вида a = 4, a,b,*c *= 3,3,[0,0] 
         public override ASTNode VisitExpr_stmt([NotNull] Python3Parser.Expr_stmtContext context)
         {
+            VisitTestlist_star_expr(context.testlist_star_expr(0));
+            IList<IASTExpression> leftSide = new List<IASTExpression>();
+
+            foreach (var n in _nodes)
+                leftSide.Add((IASTExpression)n);
+
+            _nodes.Clear();
+
+            if (context.ChildCount > 1)
+            {
+                //TODO: work
+                // check assign op
+                var assignOpCtx = context.GetChild(1);
+                if (assignOpCtx is Python3Parser.AugassignContext augassignCtx)
+                {
+
+                }
+            }
+            else
+            {
+
+            }
+            //var leftListRoot = 
+            var children = context.children;
+            var child = context.GetChild(0);
+
+            switch (child)
+            {
+                case Python3Parser.Testlist_star_exprContext tlsExprCtx:
+                    return VisitTestlist_star_expr(tlsExprCtx);
+            }
+
             return base.VisitExpr_stmt(context);
+        }
+
+        public override ASTNode VisitTestlist_star_expr([NotNull] Python3Parser.Testlist_star_exprContext context)
+        {
+            foreach(var c in context.children)
+            {
+                switch (c)
+                {
+                    case Python3Parser.TestContext testCtx:
+                        _nodes.Add(VisitTest(testCtx));
+                        break;
+                    case Python3Parser.Star_exprContext sExprCtx:
+                        _nodes.Add(VisitStar_expr(sExprCtx));
+                        break;
+                    default:
+                        return ThrowDispatchException(context);
+                }
+            }
+            return DefaultResult;
+        }
+
+        public override ASTNode VisitTest([NotNull] Python3Parser.TestContext context)
+        {
+            // lambda def
+            if (context.lambdef() != null)
+            {
+                return VisitLambdef(context.lambdef());
+            }
+            else if (context.or_test(1) != null) // ternary op
+            {
+                var ternaryOperator = new ASTTestExpression();
+                ternaryOperator.TrueValue = (IASTExpression)VisitOr_test(context.or_test(0));
+                ternaryOperator.Condition = (IASTExpression)VisitOr_test(context.or_test(1));
+                ternaryOperator.FalseValue = (IASTExpression)VisitTest(context.test());
+                return ternaryOperator;
+            }
+            else // other expr
+            {
+                return VisitOr_test(context.or_test(0));
+            }
+        }
+
+        public override ASTNode VisitLambdef([NotNull] Python3Parser.LambdefContext context)
+        {
+            return base.VisitLambdef(context);
+        }
+
+        public override ASTNode VisitOr_test([NotNull] Python3Parser.Or_testContext context)
+        {
+            ASTLogicOrExpression orExpr = new ASTLogicOrExpression();
+            orExpr.Left = (IASTExpression)VisitAnd_test(context.and_test(0));
+            if (context.and_test(1) != null)
+                orExpr.Right = (IASTExpression)VisitAnd_test(context.and_test(1));
+            return orExpr;
+        }
+
+        public override ASTNode VisitAnd_test([NotNull] Python3Parser.And_testContext context)
+        {
+            ASTLogicAndExpression andExpr = new ASTLogicAndExpression();
+            andExpr.Left = (IASTExpression)VisitNot_test(context.not_test(0));
+            if (context.not_test(1) != null)
+                andExpr.Right = (IASTExpression)VisitNot_test(context.not_test(1));
+            return andExpr;
+        }
+
+        public override ASTNode VisitNot_test([NotNull] Python3Parser.Not_testContext context)
+        {
+            ASTLogicNotExpression notExpr = new ASTLogicNotExpression();
+
+            if (context.not_test() != null)
+                notExpr.Expression =  (IASTExpression)VisitNot_test(context.not_test());
+            else
+                notExpr.Expression = (IASTExpression)VisitComparison(context.comparison());
+
+            return notExpr;
+        }
+
+        // TODO: сделано правоассоциативно, а надо лево
+        public override ASTNode VisitComparison([NotNull] Python3Parser.ComparisonContext context)
+        {
+            // get all expr rules
+            var exprs = context.expr();
+            // if comparison chain
+            if (exprs.Length > 1)
+            {
+                // get all comparison ops
+                var cmpOps = context.comp_op();
+                //
+                AST.Comparison.IASTComparison tmpNode = null;
+
+                // iterate through ops
+                for (int i = 0; i < cmpOps.Length; i++)
+                {
+                    AST.Comparison.IASTComparison tmp = null;
+
+                    switch (cmpOps[i].GetText())
+                    {
+                        case "<":
+                            tmp = new AST.Comparison.ASTLessComparison();
+                            break;
+                        case ">":
+                            tmp = new AST.Comparison.ASTGreaterComparison();
+                            break;
+                        default:
+                            throw new ArgumentException(string.Format("Couldn't dispatch {0}", cmpOps));
+                    }
+
+                    if (tmpNode == null)
+                    {
+                        tmp.Left = (IASTExpression)VisitExpr(exprs[i]);
+                        tmp.Right = (IASTExpression)VisitExpr(exprs[i + 1]);
+                    }
+                    else
+                    {
+                        tmp.Left = tmpNode;
+                        tmp.Right = (IASTExpression)VisitExpr(exprs[i]);
+                    }
+
+                    tmpNode = tmp;
+                }
+
+                return (ASTNode)tmpNode;
+
+            }
+            else // single expr
+            {
+                return VisitExpr(exprs[0]);
+            }
+        }
+
+        public override ASTNode VisitExpr([NotNull] Python3Parser.ExprContext context)
+        {
+            // get all xor exprs
+            var xorExprs = context.xor_expr();
+
+            if (xorExprs.Length > 1)
+            {
+                AST.Bitwise.IASTBitwiseExpression tmpNode = null;
+
+                for (int i = 0; i < xorExprs.Length; i++)
+                {
+                    var tmp = new AST.Bitwise.ASTBitwiseOrExpression();
+
+                    if (tmpNode == null)
+                    {
+                        tmp.Left = (IASTExpression)VisitXor_expr(xorExprs[i]);
+                        tmp.Right = (IASTExpression)VisitXor_expr(xorExprs[i + 1]);
+                    }
+                    else
+                    {
+                        tmp.Left = tmpNode;
+                        tmp.Right = (IASTExpression)VisitXor_expr(xorExprs[i]);
+                    }
+
+                    tmpNode = tmp;
+                }
+
+                return (ASTNode)tmpNode;
+            }
+            else
+            {
+                return VisitXor_expr(xorExprs[0]);
+            }
+        }
+
+        public override ASTNode VisitXor_expr([NotNull] Python3Parser.Xor_exprContext context)
+        {
+            var andExprs = context.and_expr();
+
+            if (andExprs.Length > 1)
+            {
+                AST.Bitwise.IASTBitwiseExpression tmpNode = null;
+
+                for (int i = 0; i < andExprs.Length; i++)
+                {
+                    var tmp = new AST.Bitwise.ASTBitwiseXorExpression();
+
+                    if (tmpNode == null)
+                    {
+                        tmp.Left = (IASTExpression)VisitAnd_expr(andExprs[i]);
+                        tmp.Right = (IASTExpression)VisitAnd_expr(andExprs[i + 1]);
+                    }
+                    else
+                    {
+                        tmp.Left = tmpNode;
+                        tmp.Right = (IASTExpression)VisitAnd_expr(andExprs[i]);
+                    }
+
+                    tmpNode = tmp;
+                }
+
+                return (ASTNode)tmpNode;
+            }
+            else
+            {
+                return VisitAnd_expr(andExprs[0]);
+            }
+        }
+
+        public override ASTNode VisitAnd_expr([NotNull] Python3Parser.And_exprContext context)
+        {
+            var shiftExprs = context.shift_expr();
+
+            if (shiftExprs.Length > 1)
+            {
+                AST.Bitwise.IASTBitwiseExpression tmpNode = null;
+
+                for (int i = 0; i < shiftExprs.Length; i++)
+                {
+                    var tmp = new AST.Bitwise.ASTBitwiseAndExpression();
+
+                    if (tmpNode == null)
+                    {
+                        tmp.Left = (IASTExpression)VisitShift_expr(shiftExprs[i]);
+                        tmp.Right = (IASTExpression)VisitShift_expr(shiftExprs[i + 1]);
+                    }
+                    else
+                    {
+                        tmp.Left = tmpNode;
+                        tmp.Right = (IASTExpression)VisitShift_expr(shiftExprs[i]);
+                    }
+
+                    tmpNode = tmp;
+                }
+
+                return (ASTNode)tmpNode;
+            }
+            else
+            {
+                return VisitShift_expr(shiftExprs[0]);
+            }
         }
 
         public override ASTNode VisitCompound_stmt([NotNull] Python3Parser.Compound_stmtContext context)
@@ -188,11 +452,13 @@ namespace PythonSmartCompiler.Parser.Antlr
             return funcDefStmt;
         }
 
+
         private ASTNode ThrowDispatchException(IParseTree pt)
         {
             throw new ArgumentException(string.Format("Couldn't dispatch {0}", pt.ToString()));
         }
 
-        private IList<IASTStatement> _statements { set; get; }
+        //private Stack<ASTNode> _nodes { set; get; } = new Stack<ASTNode>();
+        private IList<ASTNode> _nodes { set; get; } = new List<ASTNode>();
     }
 }
