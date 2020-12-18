@@ -355,6 +355,186 @@ namespace PythonSmartCompiler.Parser.Antlr
             }
         }
 
+        public override ASTNode VisitShift_expr([NotNull] Python3Parser.Shift_exprContext context)
+        {
+
+            List<Python3Parser.Arith_exprContext> arithExprs = new List<Python3Parser.Arith_exprContext>();
+            List<ITerminalNode> opsExpr = new List<ITerminalNode>();
+
+            foreach (var c in context.children)
+            {
+                if (c is Python3Parser.Arith_exprContext aExpr)
+                    arithExprs.Add(aExpr);
+                else if (c is ITerminalNode tNode)
+                    opsExpr.Add(tNode);
+            }
+
+            if (arithExprs.Count > 1)
+            {
+                AST.Bitwise.IASTBitwiseExpression tmpNode = null;
+
+                for (int i = 0; i < opsExpr.Count; i++)
+                {
+                    AST.Bitwise.IASTBitwiseExpression tmp = null;
+
+                    switch (opsExpr[i].GetText())
+                    {
+                        case "<<":
+                            tmp = new AST.Bitwise.ASTBitwiseLshExpression();
+                            break;
+                        case ">>":
+                            tmp = new AST.Bitwise.ASTBitwiseRshExpression();
+                            break;
+                    }
+
+                    if (tmpNode == null)
+                    {
+                        tmp.Left = (IASTExpression)VisitArith_expr(arithExprs[i]);
+                        tmp.Right = (IASTExpression)VisitArith_expr(arithExprs[i + 1]);
+                    }
+                    else
+                    {
+                        tmp.Left = tmpNode;
+                        tmp.Right = (IASTExpression)VisitArith_expr(arithExprs[i]);
+                    }
+
+                    tmpNode = tmp;
+                }
+
+                return (ASTNode)tmpNode;
+
+            }
+            else
+            {
+                return VisitArith_expr(arithExprs[0]);
+            }
+        }
+
+        public override ASTNode VisitArith_expr([NotNull] Python3Parser.Arith_exprContext context)
+        {
+            List<Python3Parser.TermContext> terms = new List<Python3Parser.TermContext>();
+            List<ITerminalNode> opsExpr = new List<ITerminalNode>();
+
+            foreach (var c in context.children)
+            {
+                if (c is Python3Parser.TermContext termExpr)
+                    terms.Add(termExpr);
+                else if (c is ITerminalNode tNode)
+                    opsExpr.Add(tNode);
+            }
+
+            if (terms.Count > 1)
+            {
+                AST.Arithmetic.IASTArithExpression tmpNode = null;
+
+                for (int i = 0; i < opsExpr.Count; i++)
+                {
+                    AST.Arithmetic.IASTArithExpression tmp = null;
+
+                    switch (opsExpr[i].GetText())
+                    {
+                        case "+":
+                            tmp = new AST.Arithmetic.ASTArithAddExpression();
+                            break;
+                        case "-":
+                            tmp = new AST.Arithmetic.ASTArithSubExpression();
+                            break;
+                    }
+
+                    if (tmpNode == null)
+                    {
+                        tmp.Left = (IASTExpression)VisitTerm(terms[i]);
+                        tmp.Right = (IASTExpression)VisitTerm(terms[i + 1]);
+                    }
+                    else
+                    {
+                        tmp.Left = tmpNode;
+                        tmp.Right = (IASTExpression)VisitTerm(terms[i]);
+                    }
+
+                    tmpNode = tmp;
+                }
+
+                return (ASTNode)tmpNode;
+
+            }
+            else
+            {
+                return VisitTerm(terms[0]);
+            }
+        }
+
+        public override ASTNode VisitTerm([NotNull] Python3Parser.TermContext context)
+        {
+
+            List<Python3Parser.FactorContext> factors = new List<Python3Parser.FactorContext>();
+            List<ITerminalNode> opsExpr = new List<ITerminalNode>();
+
+            foreach (var c in context.children)
+            {
+                if (c is Python3Parser.FactorContext fExpr)
+                    factors.Add(fExpr);
+                else if (c is ITerminalNode tNode)
+                    opsExpr.Add(tNode);
+            }
+
+            if (factors.Count > 1)
+            {
+                AST.Arithmetic.IASTArithExpression tmpNode = null;
+
+                for (int i = 0; i < opsExpr.Count; i++)
+                {
+                    AST.Arithmetic.IASTArithExpression tmp = null;
+
+                    switch (opsExpr[i].GetText())
+                    {
+                        case "*":
+                            tmp = new AST.Arithmetic.ASTArithMulExpression();
+                            break;
+                        case "@":
+                            tmp = new AST.Arithmetic.ASTArithMatMulExpression();
+                            break;
+                        case "/":
+                            tmp = new AST.Arithmetic.ASTArithDivExpression();
+                            break;
+                        case "%":
+                            tmp = new AST.Arithmetic.ASTArithModExpression();
+                            break;
+                        case "//":
+                            tmp = new AST.Arithmetic.ASTArithFloorDivExpression();
+                            break;
+                            // TODO: dispatch exception
+                    }
+
+                    if (tmpNode == null)
+                    {
+                        tmp.Left = (IASTExpression)VisitFactor(factors[i]);
+                        tmp.Right = (IASTExpression)VisitFactor(factors[i + 1]);
+                    }
+                    else
+                    {
+                        tmp.Left = tmpNode;
+                        tmp.Right = (IASTExpression)VisitFactor(factors[i]);
+                    }
+
+                    tmpNode = tmp;
+                }
+
+                return (ASTNode)tmpNode;
+
+            }
+            else
+            {
+                return VisitFactor(factors[0]);
+            }
+        }
+
+        // TODO: в процессе
+        public override ASTNode VisitFactor([NotNull] Python3Parser.FactorContext context)
+        {
+            return base.VisitFactor(context);
+        }
+
         public override ASTNode VisitCompound_stmt([NotNull] Python3Parser.Compound_stmtContext context)
         {
             // get child context
