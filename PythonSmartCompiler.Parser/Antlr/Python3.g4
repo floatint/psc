@@ -245,7 +245,7 @@ atom_expr: (AWAIT)? atom trailer*;
 atom: ('(' (yield_expr|testlist_comp)? ')' |
        '[' (testlist_comp)? ']' |
        '{' (dictorsetmaker)? '}' |
-       NAME | NUMBER | STRING+ | '...' | 'None' | 'True' | 'False');
+       NAME | number | string+ | '...' | 'None' | 'True' | 'False');
 testlist_comp: (test|star_expr) ( comp_for | (',' (test|star_expr))* (',')? );
 trailer: '(' (arglist)? ')' | '[' subscriptlist ']' | '.' NAME;
 subscriptlist: subscript (',' subscript)* (',')?;
@@ -290,18 +290,18 @@ yield_arg: 'from' test | testlist;
  * lexer rules
  */
 
-STRING
+string
  : STRING_LITERAL
  | BYTES_LITERAL
  ;
 
-NUMBER
- : INTEGER
+number
+ : integer
  | FLOAT_NUMBER
  | IMAG_NUMBER
  ;
 
-INTEGER
+integer
  : DECIMAL_INTEGER
  | OCT_INTEGER
  | HEX_INTEGER

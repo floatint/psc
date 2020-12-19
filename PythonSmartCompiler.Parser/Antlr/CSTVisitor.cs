@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Globalization;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
 using PythonSmartCompiler.Parser.AST;
@@ -171,7 +172,7 @@ namespace PythonSmartCompiler.Parser.Antlr
 
         public override ASTNode VisitOr_test([NotNull] Python3Parser.Or_testContext context)
         {
-            ASTLogicOrExpression orExpr = new ASTLogicOrExpression();
+            AST.Logic.ASTLogicOrExpression orExpr = new AST.Logic.ASTLogicOrExpression();
             orExpr.Left = (IASTExpression)VisitAnd_test(context.and_test(0));
             if (context.and_test(1) != null)
                 orExpr.Right = (IASTExpression)VisitAnd_test(context.and_test(1));
@@ -180,7 +181,7 @@ namespace PythonSmartCompiler.Parser.Antlr
 
         public override ASTNode VisitAnd_test([NotNull] Python3Parser.And_testContext context)
         {
-            ASTLogicAndExpression andExpr = new ASTLogicAndExpression();
+            AST.Logic.ASTLogicAndExpression andExpr = new AST.Logic.ASTLogicAndExpression();
             andExpr.Left = (IASTExpression)VisitNot_test(context.not_test(0));
             if (context.not_test(1) != null)
                 andExpr.Right = (IASTExpression)VisitNot_test(context.not_test(1));
@@ -189,7 +190,7 @@ namespace PythonSmartCompiler.Parser.Antlr
 
         public override ASTNode VisitNot_test([NotNull] Python3Parser.Not_testContext context)
         {
-            ASTLogicNotExpression notExpr = new ASTLogicNotExpression();
+            AST.Logic.ASTLogicNotExpression notExpr = new AST.Logic.ASTLogicNotExpression();
 
             if (context.not_test() != null)
                 notExpr.Expression =  (IASTExpression)VisitNot_test(context.not_test());
@@ -529,10 +530,128 @@ namespace PythonSmartCompiler.Parser.Antlr
             }
         }
 
-        // TODO: в процессе
         public override ASTNode VisitFactor([NotNull] Python3Parser.FactorContext context)
         {
-            return base.VisitFactor(context);
+
+            if (context.ChildCount > 1)
+            {
+                // get op
+                AST.Unary.IASTUnaryExpression unarExpr = null;
+                var opNode = context.GetChild(0);
+
+                switch (opNode.GetText())
+                {
+                    case "+":
+                        unarExpr = new AST.Unary.ASTUnaryPlusExpression();
+                        break;
+                    case "-":
+                        unarExpr = new AST.Unary.ASTUnaryMinusExpression();
+                        break;
+                    case "~":
+                        unarExpr = new AST.Unary.ASTUnaryNotExpression();
+                        break;
+                        // TODO: dispatch exception
+                }
+
+                if (context.factor() != null)
+                    unarExpr.Value = (IASTExpression)VisitFactor(context.factor());
+                else
+                    unarExpr.Value = (IASTExpression)VisitPower(context.power());
+
+                return (ASTNode)unarExpr;
+
+            }
+            else
+            {
+                if (context.factor() != null)
+                    return VisitFactor(context.factor());
+                else
+                    return VisitPower(context.power());
+            }
+        }
+
+        public override ASTNode VisitPower([NotNull] Python3Parser.PowerContext context)
+        {
+            // if pow
+            if (context.factor() != null)
+            {
+                AST.Arithmetic.ASTArithPowExpression powNode = new AST.Arithmetic.ASTArithPowExpression();
+                powNode.Left = (IASTExpression)VisitAtom_expr(context.atom_expr());
+                powNode.Right = (IASTExpression)VisitFactor(context.factor());
+                return powNode;
+            }
+            else // just atom
+            {
+                return VisitAtom_expr(context.atom_expr());
+            }
+        }
+
+        // TODO: в процессе
+        public override ASTNode VisitAtom_expr([NotNull] Python3Parser.Atom_exprContext context)
+        {
+            // TODO: AWAIT support
+
+            var atomNode = VisitAtom(context.atom());
+            List<ASTNode> trailers = new List<ASTNode>();
+
+            foreach (var t in context.trailer())
+                trailers.Add(VisitTrailer(t));
+
+            // build ast tree
+            if (trailers.Count != 0)
+            {
+                return null;
+            }
+            else
+            {
+                return atomNode;
+            }
+
+            //return base.VisitAtom_expr(context);
+        }
+
+        public override ASTNode VisitAtom([NotNull] Python3Parser.AtomContext context)
+        {
+            // result atom
+            IASTExpression atomExpr = null;
+            // try detect atoms
+
+
+            // if ident
+            if (context.NAME() != null)
+                return new AST.Atom.ASTAtomName(context.NAME().GetText());
+
+            // if number
+            if (context.number() != null)
+            {
+                var num = context.number();
+                
+                if (num.integer() != null)
+                {
+                    var intNum = num.integer();
+                    var numStr = intNum.GetText();
+                    var numBase = intNum.DECIMAL_INTEGER() == null ? intNum.HEX_INTEGER() == null ? intNum.OCT_INTEGER() == null ? intNum.BIN_INTEGER() == null ? 10 : 2 : 8 : 16 : 10;
+
+                    atomExpr = new AST.Atom.ASTAtomInteger(Convert.ToInt32(numStr, numBase));
+                    
+                } else if (num.FLOAT_NUMBER() != null)
+                {
+                    atomExpr = new AST.Atom.ASTAtomFloat(Convert.ToDouble(num.FLOAT_NUMBER().GetText(),CultureInfo.InvariantCulture));
+                } else if (num.IMAG_NUMBER() != null)
+                {
+                    throw new ArgumentException("Unsupported number format");
+                }
+
+            }
+
+            // if string
+            var strs = context.@string();
+            if (strs != null && strs.Length > 0)
+            {
+                // handle string
+                var a = 1;
+            }
+            return (ASTNode)atomExpr;
         }
 
         public override ASTNode VisitCompound_stmt([NotNull] Python3Parser.Compound_stmtContext context)
